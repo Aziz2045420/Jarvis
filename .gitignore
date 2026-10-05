@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+jarvis_memory.json
+.env
+*.log

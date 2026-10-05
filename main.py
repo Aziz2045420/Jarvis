@@ -4,6 +4,7 @@ import speech_recognition as sr
 from google import genai
 from google.genai import types, errors
 
+import actions
 import files
 import memory
 import tools
@@ -35,6 +36,10 @@ SYSTEM_PROMPT = (
     "know they live in, otherwise ask which city. Say temperatures in degrees Celsius. "
     "You CAN open websites: call open_website whenever the user asks to open a site or "
     "search the web (for a search, open https://www.google.com/search?q=<terms>). "
+    "You CAN open apps with open_app and create new text files with create_text_file "
+    "(saved in the workspace folder). The tools ask the user for confirmation themselves, "
+    "so do not ask for permission first, just call the tool. If a tool says the user "
+    "declined, accept it, say OK, and do not try again. You cannot delete or overwrite files. "
     "Never say you cannot open a browser."
 )
 
@@ -48,6 +53,8 @@ TOOLS = [
     tools.get_datetime,
     tools.get_weather,
     tools.open_website,
+    actions.open_app,
+    actions.create_text_file,
 ]
 
 

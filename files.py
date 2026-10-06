@@ -1,4 +1,5 @@
 import os
+import subprocess
 from pathlib import Path
 
 # JARVIS may only touch files inside these folders
@@ -108,5 +109,72 @@ def search_files(name_contains: str, folder: str = "") -> str:
         if not found:
             return f"No files with '{name_contains}' in the name (scanned {scanned} files)."
         return "Matches:\n" + "\n".join(found)
+    except (ValueError, OSError) as e:
+        return f"Error: {e}"
+
+
+def open_folder(path: str = "") -> str:
+    """Open a folder in the user's default file explorer.
+
+    Args:
+        path: Folder path. Relative paths are relative to the user's home folder.
+    """
+    try:
+        folder = _resolve(path)
+        if not folder.is_dir():
+            return f"Not a folder: {folder}"
+        if hasattr(os, "startfile"):
+            os.startfile(str(folder))
+        else:
+            subprocess.Popen(["explorer.exe", str(folder)])
+        return f"Opened folder: {folder}"
+    except (ValueError, OSError) as e:
+        return f"Error: {e}"
+
+
+def search_text_in_files(query: str, folder: str = "") -> str:
+    """Search text within files in a folder and its subfolders.
+
+    Args:
+        query: Text to look for (case-insensitive).
+        folder: Where to search. Relative paths are relative to the user's home folder.
+            Empty string means the home folder.
+    """
+    try:
+        if not query or not query.strip():
+            return "No search text given."
+        start = _resolve(folder)
+        if not start.is_dir():
+            return f"Not a folder: {start}"
+        needle = query.strip().lower()
+        matches = []
+        scanned = 0
+        for dirpath, dirnames, filenames in os.walk(start):
+            dirnames[:] = [
+                d for d in dirnames
+                if not d.startswith(".") and d.lower() not in SKIP_DIRS
+            ]
+            for filename in filenames:
+                path = Path(dirpath) / filename
+                if path.suffix.lower() not in TEXT_SUFFIXES:
+                    continue
+                scanned += 1
+                try:
+                    text = path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                for line_no, line in enumerate(text.splitlines(), 1):
+                    if needle in line.lower():
+                        snippet = line.strip()
+                        if len(snippet) > 120:
+                            snippet = snippet[:117] + "..."
+                        matches.append(f"{path}:{line_no}: {snippet}")
+                        if len(matches) >= MAX_RESULTS:
+                            return "Matches (stopped at limit):\n" + "\n".join(matches)
+            if scanned >= MAX_SCANNED:
+                break
+        if not matches:
+            return f"No matches for '{query}' in text files under {start} (scanned {scanned} files)."
+        return "Matches:\n" + "\n".join(matches)
     except (ValueError, OSError) as e:
         return f"Error: {e}"

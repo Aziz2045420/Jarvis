@@ -64,3 +64,26 @@ def create_text_file(filename: str, content: str) -> str:
     except OSError as e:
         return f"Couldn't write the file: {e}"
     return f"Created {target}"
+
+
+def create_folder(folder_name: str) -> str:
+    """Create a new folder inside the JARVIS workspace folder.
+
+    Args:
+        folder_name: New folder path relative to the workspace, e.g. 'notes/project-one'.
+    """
+    WORKSPACE.mkdir(exist_ok=True)
+    root = WORKSPACE.resolve()
+    target = (root / folder_name.strip()).resolve()
+    if root not in target.parents and target != root:
+        return "Refused: folders can only be created inside the workspace folder."
+    if target.exists():
+        return f"Folder already exists: {target}"
+    question = f"JARVIS wants to create folder {target}"
+    if not safety.confirm(question):
+        return "The user declined. Do not retry."
+    try:
+        target.mkdir(parents=True, exist_ok=False)
+    except OSError as e:
+        return f"Couldn't create the folder: {e}"
+    return f"Created folder: {target}"
